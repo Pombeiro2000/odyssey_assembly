@@ -1,6 +1,22 @@
 # =====================================================================
+#  A ODISSEIA DO ASSEMBLY — Motor de Processamento de Dados Simbolicos
 #  Milestone 1 — O Contentor
 #
+#  Sintaxe AT&T (GAS), arquitetura IA-32.
+#  Compilar:  gcc motor.s -o motor        (em sistema de 64 bits: gcc -m32 motor.s -o motor)
+#
+#  O que faz:
+#    1. Define um contentor de 8 inteiros de 32 bits COM SINAL (.long).
+#    2. Inicializa um acumulador de 64 bits (soma_alta:soma_baixa) a zero.
+#    3. Soma todos os elementos usando addl (parte baixa) + adcl (parte
+#       alta), com extensao de sinal (cltd) de cada elemento para 64 bits.
+#       Assim a soma nunca perde informacao, mesmo que ultrapasse 32 bits.
+#    4. Calcula o indicador excede_32 (0 = a soma cabe num long com sinal;
+#       != 0 = a soma so e representavel nos 64 bits).
+#
+#  Usa apenas materia das Aulas 1-6 (mov, add, adc, xor, cltd, flags).
+#  Cada elemento e acedido por enderecamento direto
+#  (rotulo + deslocamento constante).
 # =====================================================================
 
         .data
@@ -27,8 +43,11 @@ n_elementos:
         .globl main
 
 main:
-
+# =====================================================================
+#  FIM
+#  main devolve 0 ao sistema.
+# =====================================================================
         xorl   %eax, %eax           # valor de retorno de main = 0
         ret
 
-        .section .note.GNU-stack,"",@progbits   
+        .section .note.GNU-stack,"",@progbits   # pilha nao executavel (evita aviso do linker)

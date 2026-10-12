@@ -1,6 +1,7 @@
 # =====================================================================
 #  A ODISSEIA DO ASSEMBLY — Motor de Processamento de Dados Simbolicos
 #  Milestone 1 — O Contentor
+#  Arquitetura de Sistemas Computacionais · ESTGA / Universidade de Aveiro
 #
 #  Sintaxe AT&T (GAS), arquitetura IA-32.
 #  Compilar:  gcc motor.s -o motor        (em sistema de 64 bits: gcc -m32 motor.s -o motor)
@@ -39,12 +40,34 @@ contentor:
 n_elementos:
         .long  8                    # numero de posicoes do contentor
 
+# ---------------------------------------------------------------------
+#  RESULTADO: soma total em 64 bits = soma_alta:soma_baixa
+#  (mesma convencao de EDX:EAX — parte alta : parte baixa)
+# ---------------------------------------------------------------------
+soma_baixa:
+        .long  0                    # 32 bits menos significativos da soma
+soma_alta:
+        .long  0                    # 32 bits mais significativos da soma
+excede_32:
+        .long  0                    # 0 -> soma cabe em 32 bits com sinal
+
         .text
         .globl main
 
 main:
 # =====================================================================
+#  INICIALIZACAO
+#  Os acumuladores ja estao a 0 em .data, mas inicializamos explicitamente
+#  para a rotina estar correta mesmo que seja executada mais do que uma vez.
+# =====================================================================
+        xorl   %eax, %eax           # eax = 0 (forma eficiente de zerar)
+        movl   %eax, soma_baixa     # soma_baixa = 0
+        movl   %eax, soma_alta      # soma_alta  = 0
+        movl   %eax, excede_32      # excede_32  = 0
+
+# =====================================================================
 #  FIM
+#  O resultado fica em memoria (soma_alta:soma_baixa, excede_32).
 #  main devolve 0 ao sistema.
 # =====================================================================
         xorl   %eax, %eax           # valor de retorno de main = 0

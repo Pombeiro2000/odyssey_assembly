@@ -66,6 +66,66 @@ main:
         movl   %eax, excede_32      # excede_32  = 0
 
 # =====================================================================
+#  ROTINA DE SOMA TOTAL
+#  Para cada elemento:
+#     movl elem, %eax   -> carrega o elemento (32 bits com sinal)
+#     cltd              -> edx:eax = elemento estendido com sinal a 64 bits
+#                          (edx = 0x00000000 se positivo, 0xFFFFFFFF se negativo)
+#     addl %eax, baixa  -> soma a parte baixa; CF = 1 se houver transporte
+#     adcl %edx, alta   -> soma a parte alta + CF (propaga o transporte)
+#  Nenhuma instrucao entre addl e adcl altera CF (mov e cltd nao mexem
+#  nas flags), por isso o transporte chega intacto ao adcl.
+# =====================================================================
+soma_total:
+        # --- elemento [0] ---
+        movl   contentor, %eax
+        cltd
+        addl   %eax, soma_baixa
+        adcl   %edx, soma_alta
+
+        # --- elemento [1] ---
+        movl   contentor+4, %eax
+        cltd
+        addl   %eax, soma_baixa
+        adcl   %edx, soma_alta
+
+        # --- elemento [2] ---
+        movl   contentor+8, %eax
+        cltd
+        addl   %eax, soma_baixa
+        adcl   %edx, soma_alta
+
+        # --- elemento [3] ---
+        movl   contentor+12, %eax
+        cltd
+        addl   %eax, soma_baixa
+        adcl   %edx, soma_alta
+
+        # --- elemento [4] ---
+        movl   contentor+16, %eax
+        cltd
+        addl   %eax, soma_baixa
+        adcl   %edx, soma_alta
+
+        # --- elemento [5] ---
+        movl   contentor+20, %eax
+        cltd
+        addl   %eax, soma_baixa
+        adcl   %edx, soma_alta
+
+        # --- elemento [6] ---
+        movl   contentor+24, %eax
+        cltd
+        addl   %eax, soma_baixa
+        adcl   %edx, soma_alta
+
+        # --- elemento [7] ---
+        movl   contentor+28, %eax
+        cltd
+        addl   %eax, soma_baixa
+        adcl   %edx, soma_alta
+
+# =====================================================================
 #  FIM
 #  O resultado fica em memoria (soma_alta:soma_baixa, excede_32).
 #  main devolve 0 ao sistema.

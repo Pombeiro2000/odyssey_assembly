@@ -56,7 +56,7 @@ excede_32:
 
 main:
 # =====================================================================
-#  INICIALIZACAO
+#  Inicialização
 #  Os acumuladores ja estao a 0 em .data, mas inicializamos explicitamente
 #  para a rotina estar correta mesmo que seja executada mais do que uma vez.
 # =====================================================================
@@ -66,7 +66,7 @@ main:
         movl   %eax, excede_32      # excede_32  = 0
 
 # =====================================================================
-#  ROTINA DE SOMA TOTAL
+#  Rotina de soma total
 #  Para cada elemento:
 #     movl elem, %eax   -> carrega o elemento (32 bits com sinal)
 #     cltd              -> edx:eax = elemento estendido com sinal a 64 bits
@@ -126,7 +126,18 @@ soma_total:
         adcl   %edx, soma_alta
 
 # =====================================================================
-#  FIM
+#  Verificação de overflow para 32 bits
+#  A soma cabe num long com sinal se e so se a parte alta for igual a
+#  extensao de sinal da parte baixa. Estendemos a parte baixa com cltd e
+#  comparamos com a parte alta usando xor: resultado 0 <=> sao iguais.
+# =====================================================================
+        movl   soma_baixa, %eax     # eax = parte baixa
+        cltd                        # edx = extensao de sinal de eax
+        xorl   soma_alta, %edx      # edx = 0 se a soma cabe em 32 bits
+        movl   %edx, excede_32      # guarda o indicador
+
+# =====================================================================
+#  Fim
 #  O resultado fica em memoria (soma_alta:soma_baixa, excede_32).
 #  main devolve 0 ao sistema.
 # =====================================================================

@@ -14,10 +14,6 @@
 #       Assim a soma nunca perde informacao, mesmo que ultrapasse 32 bits.
 #    4. Calcula o indicador excede_32 (0 = a soma cabe num long com sinal;
 #       != 0 = a soma so e representavel nos 64 bits).
-#
-#  Usa apenas materia das Aulas 1-6 (mov, add, adc, xor, cltd, flags).
-#  Cada elemento e acedido por enderecamento direto
-#  (rotulo + deslocamento constante).
 # =====================================================================
 
         .data

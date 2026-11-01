@@ -1,8 +1,8 @@
 # =====================================================================
 #  A ODISSEIA DO ASSEMBLY — Motor de Processamento de Dados Simbolicos
-#  
 #
 #  Sintaxe AT&T (GAS), arquitetura IA-32.
+#  Compilar:  gcc motor.s -o motor
 #
 #  O que faz:
 #    1. Define um contentor de 8 inteiros de 32 bits COM SINAL (.long).
@@ -76,7 +76,7 @@ main:
         movl   %eax, conta_zeros     # conta_zeros     = 0
 
 # =====================================================================
-#  Rotina da soma total
+#  ROTINA DE SOMA TOTAL
 #  Para cada elemento:
 #     movl elem, %eax   -> carrega o elemento (32 bits com sinal)
 #     cltd              -> edx:eax = elemento estendido com sinal a 64 bits
@@ -137,7 +137,7 @@ soma_total:
 
 # =====================================================================
 #  Verificação de overflow a 32 bits
-#  A soma cabe num long com sinal se e so se a parte alta for igual a 
+#  A soma cabe num long com sinal se e so se a parte alta for igual a
 #  extensao de sinal da parte baixa. Estendemos a parte baixa com cltd e
 #  comparamos com a parte alta usando xor: resultado 0 <=> sao iguais.
 # =====================================================================
@@ -147,8 +147,35 @@ soma_total:
         movl   %edx, excede_32      # guarda o indicador
 
 # =====================================================================
-#  Os resultados ficam em memoria (soma_alta:soma_baixa, excede_32, conta_positivos, conta_negativos, conta_zeros).
-#  A main devolve 0 ao sistema.
+#  O ciclo sobre o contentor é feito:
+#   1. inicializar a variavel de controlo
+#   2. testar a condicao de paragem (cmp + salto condicional)
+#   3. corpo do ciclo
+#   4. atualizar a variavel de controlo
+#   5. saltar incondicionalmente de volta ao teste
+#  %ecx = indice i (0, 1, ..., n_elementos-1)
+#  %edx = endereco do elemento i (comeca em contentor, avanca 4 bytes)
+# =====================================================================
+classificacao:
+        movl   $contentor, %edx     # 1 edx = ENDERECO do elemento [0] (com $)
+        movl   $0, %ecx             # 1 i = 0
+
+ciclo:
+        cmpl   n_elementos, %ecx    # 2 compara i com n_elementos
+        jge    fim_ciclo            # 2 se i >= n_elementos, sai do ciclo
+                                    #    (jge e nao jg: com jg o ciclo faria
+                                    #     uma iteracao a mais -> off-by-one)
+
+        movl   (%edx), %eax         # 3 eax = M[edx] = elemento i
+        addl   $4, %edx             # 4 endereco do elemento seguinte (+4 bytes)
+        incl   %ecx                 # 4 i++
+        jmp    ciclo                # 5 volta ao teste
+fim_ciclo:
+
+# =====================================================================
+#  Os resultados ficam em memoria (soma_alta:soma_baixa, excede_32,
+#  conta_positivos, conta_negativos, conta_zeros).
+#  main devolve 0 ao sistema.
 # =====================================================================
         xorl   %eax, %eax           # valor de retorno de main = 0
         ret

@@ -1,7 +1,6 @@
 # =====================================================================
 #  A ODISSEIA DO ASSEMBLY — Motor de Processamento de Dados Simbolicos
 #  Milestone 1 — O Contentor
-#  Arquitetura de Sistemas Computacionais · ESTGA / Universidade de Aveiro
 #
 #  Sintaxe AT&T (GAS), arquitetura IA-32.
 #  Compilar:  gcc motor.s -o motor        (em sistema de 64 bits: gcc -m32 motor.s -o motor)

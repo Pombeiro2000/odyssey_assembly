@@ -157,16 +157,39 @@ soma_total:
 #  %edx = endereco do elemento i (comeca em contentor, avanca 4 bytes)
 # =====================================================================
 classificacao:
-        movl   $contentor, %edx     # 1 edx = ENDERECO do elemento [0] (com $)
-        movl   $0, %ecx             # 1 i = 0
+        movl   $contentor, %edx     # 1. edx = ENDERECO do elemento [0] (com $)
+        movl   $0, %ecx             # 1. i = 0
 
 ciclo:
-        cmpl   n_elementos, %ecx    # 2 compara i com n_elementos
-        jge    fim_ciclo            # 2 se i >= n_elementos, sai do ciclo
+        cmpl   n_elementos, %ecx    # 2. compara i com n_elementos
+        jge    fim_ciclo            # 2. se i >= n_elementos, sai do ciclo
                                     #    (jge e nao jg: com jg o ciclo faria
                                     #     uma iteracao a mais -> off-by-one)
 
-        movl   (%edx), %eax         # 3 eax = M[edx] = elemento i
+        movl   (%edx), %eax         # 3. eax = M[edx] = elemento i
+
+        # Faz-se a classificacao do elemento: padrao if-then-else
+        # if (eax > 0) positivos++
+        # else if (eax == 0) zeros++
+        # else negativos++
+        # Saltos COM sinal (jle), porque os valores estao em C2: com a versao
+        # sem sinal (jbe) um negativo como -7 = 0xFFFFFFF9 seria tratado
+        # como "maior" do que 0 e contado como positivo.
+        cmpl   $0, %eax             # compara o elemento com 0
+        jle    senao_positivo       # se eax <= 0, salta para o ramo else
+        incl   conta_positivos      # ramo then: e positivo
+        jmp    fim_if               # salta o ramo else
+
+senao_positivo:                     # ramo else: eax <= 0
+        cmpl   $0, %eax             # compara de novo com 0
+        jne    senao_zero           # se eax != 0, salta para o else interno
+        incl   conta_zeros          # then interno: e zero
+        jmp    fim_if               # salta o else interno
+
+senao_zero:                         # else interno: eax < 0
+        incl   conta_negativos      # e negativo
+
+fim_if:
         addl   $4, %edx             # 4 endereco do elemento seguinte (+4 bytes)
         incl   %ecx                 # 4 i++
         jmp    ciclo                # 5 volta ao teste

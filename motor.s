@@ -1,17 +1,21 @@
 # =====================================================================
 #  A ODISSEIA DO ASSEMBLY — Motor de Processamento de Dados Simbolicos
+#  
 #
 #  Sintaxe AT&T (GAS), arquitetura IA-32.
-#  Compilar:  gcc motor.s -o motor        (em sistema de 64 bits: gcc -m32 motor.s -o motor)
 #
 #  O que faz:
 #    1. Define um contentor de 8 inteiros de 32 bits COM SINAL (.long).
-#    2. Inicializa um acumulador de 64 bits (soma_alta:soma_baixa) a zero.
-#    3. Soma todos os elementos usando addl (parte baixa) + adcl (parte
-#       alta), com extensao de sinal (cltd) de cada elemento para 64 bits.
-#       Assim a soma nunca perde informacao, mesmo que ultrapasse 32 bits.
-#    4. Calcula o indicador excede_32 (0 = a soma cabe num long com sinal;
-#       != 0 = a soma so e representavel nos 64 bits).
+#    2. Soma todos os elementos num acumulador de 64 bits
+#       (soma_alta:soma_baixa) com cltd + addl/adcl.
+#    3. Calcula o indicador excede_32 (0 = a soma cabe num long com sinal).
+#    4. Percorre o contentor com um ciclo (anatomia da Aula 9: cmp + jge +
+#       jmp) e classifica cada elemento como positivo, negativo ou zero
+#       com o padrao if-then-else da Aula 8 (cmp + salto para o "senao" +
+#       jmp fim_if), acumulando 3 contadores.
+#
+#  O elemento atual e lido com (%edx): %edx guarda o endereco do elemento
+#  e avanca 4 bytes por iteracao.
 # =====================================================================
 
         .data
@@ -35,7 +39,7 @@ n_elementos:
         .long  8                    # numero de posicoes do contentor
 
 # ---------------------------------------------------------------------
-#  RESULTADO: soma total em 64 bits = soma_alta:soma_baixa
+#  Irá ter um resultado da soma total em 64 bits = soma_alta:soma_baixa
 #  (mesma convencao de EDX:EAX — parte alta : parte baixa)
 # ---------------------------------------------------------------------
 soma_baixa:
@@ -45,22 +49,34 @@ soma_alta:
 excede_32:
         .long  0                    # 0 -> soma cabe em 32 bits com sinal
 
+# ---------------------------------------------------------------------
+#  Contadores da classificação
+# ---------------------------------------------------------------------
+conta_positivos:
+        .long  0                    # numero de elementos > 0
+conta_negativos:
+        .long  0                    # numero de elementos < 0
+conta_zeros:
+        .long  0                    # numero de elementos == 0
+
         .text
         .globl main
 
 main:
 # =====================================================================
-#  Inicialização
-#  Os acumuladores ja estao a 0 em .data, mas inicializamos explicitamente
+#  Dá-se o início dos acumuladores ja estao a 0 em .data, mas inicializamos explicitamente
 #  para a rotina estar correta mesmo que seja executada mais do que uma vez.
 # =====================================================================
         xorl   %eax, %eax           # eax = 0 (forma eficiente de zerar)
         movl   %eax, soma_baixa     # soma_baixa = 0
         movl   %eax, soma_alta      # soma_alta  = 0
         movl   %eax, excede_32      # excede_32  = 0
+        movl   %eax, conta_positivos # conta_positivos = 0
+        movl   %eax, conta_negativos # conta_negativos = 0
+        movl   %eax, conta_zeros     # conta_zeros     = 0
 
 # =====================================================================
-#  Rotina de soma total
+#  Rotina da soma total
 #  Para cada elemento:
 #     movl elem, %eax   -> carrega o elemento (32 bits com sinal)
 #     cltd              -> edx:eax = elemento estendido com sinal a 64 bits
@@ -120,8 +136,8 @@ soma_total:
         adcl   %edx, soma_alta
 
 # =====================================================================
-#  Verificação de overflow para 32 bits
-#  A soma cabe num long com sinal se e so se a parte alta for igual a
+#  Verificação de overflow a 32 bits
+#  A soma cabe num long com sinal se e so se a parte alta for igual a 
 #  extensao de sinal da parte baixa. Estendemos a parte baixa com cltd e
 #  comparamos com a parte alta usando xor: resultado 0 <=> sao iguais.
 # =====================================================================
@@ -131,9 +147,8 @@ soma_total:
         movl   %edx, excede_32      # guarda o indicador
 
 # =====================================================================
-#  Fim
-#  O resultado fica em memoria (soma_alta:soma_baixa, excede_32).
-#  main devolve 0 ao sistema.
+#  Os resultados ficam em memoria (soma_alta:soma_baixa, excede_32, conta_positivos, conta_negativos, conta_zeros).
+#  A main devolve 0 ao sistema.
 # =====================================================================
         xorl   %eax, %eax           # valor de retorno de main = 0
         ret

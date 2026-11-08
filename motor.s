@@ -76,7 +76,7 @@ main:
         movl   %eax, conta_zeros     # conta_zeros     = 0
 
 # =====================================================================
-#  ROTINA DE SOMA TOTAL
+#  Rotina de Soma total
 #  Para cada elemento:
 #     movl elem, %eax   -> carrega o elemento (32 bits com sinal)
 #     cltd              -> edx:eax = elemento estendido com sinal a 64 bits

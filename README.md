@@ -1,8 +1,6 @@
-# A Odisseia do Assembly — Milestone 2: O Decisor
+# A Odisseia do Assembly
 
 **UC:** Arquitetura de Sistemas Computacionais · **Grupo:** _(João Duarte Bacalhau Pombeiro / nº mecanográfico: 93424)_ _(Manuel Augusto Valente Liendo / nº mecanográfico: 126949)_ _(Abelirio Augusto Galvão Rocha / nº mecanográfico: 142185)_
-
-> O Milestone 2 acrescenta a classificação por elemento ao código do Milestone 1 (secção "Milestone 2" no fim). O contentor e a soma do M1 não foram alterados.
 
 ## Compilar e executar
 ```
@@ -14,7 +12,7 @@ print (int)conta_zeros
 ```
 
 ## Base do Milestone 1
-O contentor (8 posições `.long`, inteiros de 32 bits com sinal), a soma de 64 bits com `cltd` + `addl`/`adcl` e o indicador `excede_32` mantêm-se exatamente como no Milestone 1. O código novo foi **acrescentado** depois da soma, sem reescrever o contentor nem a rotina existente.
+O contentor (8 posições `.long`, inteiros de 32 bits com sinal), a soma de 64 bits com `cltd` + `addl`/`adcl` e o indicador `excede_32` mantêm-se igual. O código novo foi **acrescentado** depois da soma, sem reescrever o contentor nem a rotina existente.
 
 ## Novo comportamento
 - **Contadores:** `conta_positivos`, `conta_negativos` e `conta_zeros` (`.long` em `.data`), postos a zero na inicialização.

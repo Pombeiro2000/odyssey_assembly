@@ -223,4 +223,28 @@ obter_elemento:
         popl   %ebp                 # epilogo: repoe o %ebp de quem chamou
         ret                         # volta para o endereco de retorno
 
+
+# =====================================================================
+#  somar_elemento(valor)
+#  Parametro: 8(%ebp) = valor a somar (32 bits com sinal)
+#  Soma o valor ao acumulador de 64 bits soma_alta:soma_baixa (Milestone 1):
+#     cltd              -> edx:eax = valor estendido com sinal a 64 bits
+#     addl %eax, baixa  -> soma a parte baixa; CF = 1 se houver transporte
+#     adcl %edx, alta   -> soma a parte alta + CF (propaga o transporte)
+#  Nenhuma instrucao entre addl e adcl altera CF.
+#  Nao devolve nada (altera %eax e %edx, que sao caller-saved).
+# =====================================================================
+somar_elemento:
+        pushl  %ebp                 # prologo
+        movl   %esp, %ebp
+
+        movl   8(%ebp), %eax        # eax = valor (1.o parametro)
+        cltd                        # edx:eax = valor em 64 bits
+        addl   %eax, soma_baixa     # parte baixa, CF = transporte
+        adcl   %edx, soma_alta      # parte alta + CF
+
+        movl   %ebp, %esp           # epilogo
+        popl   %ebp
+        ret
+
         .section .note.GNU-stack,"",@progbits   # pilha nao executavel (evita aviso do linker)

@@ -6,39 +6,67 @@
 ```
 gcc motor.s -o motor        # em máquina de 64 bits: gcc -m32 -no-pie motor.s -o motor
 gdb ./motor                 # break no ret de main, run, e depois:
+print (int)soma_baixa
+print (int)soma_alta
+print (int)excede_32
 print (int)conta_positivos
 print (int)conta_negativos
 print (int)conta_zeros
 ```
 
-## Base do Milestone 1
-O contentor (8 posições `.long`, inteiros de 32 bits com sinal), a soma de 64 bits com `cltd` + `addl`/`adcl` e o indicador `excede_32` mantêm-se igual. O código novo foi **acrescentado** depois da soma, sem reescrever o contentor nem a rotina existente.
+## Base dos Milestones 1 e 2
+O contentor (8 posições `.long`, inteiros de 32 bits com sinal), a soma de 64 bits com `cltd` + `addl`/`adcl`, o indicador `excede_32` e a classificação com o padrão if-then-else (saltos com sinal) mantêm-se. O Milestone 3 **não muda os resultados**, só a organização do código: a lógica passou para funções e o `main` passou a apenas chamá-las.
 
-## Novo comportamento
-- **Contadores:** `conta_positivos`, `conta_negativos` e `conta_zeros` (`.long` em `.data`), postos a zero na inicialização.
-- **Ciclo (anatomia da Aula 9):** inicialização (`%ecx = 0`, `%edx = $contentor`); condição de paragem `cmpl n_elementos, %ecx` + `jge fim_ciclo`; corpo; atualização (`addl $4, %edx`, `incl %ecx`); `jmp ciclo`.
-- **Sem off-by-one:** usa-se `jge` e não `jg`. Com `i` a variar de 0 a 7, o ciclo sai quando `i = 8`; com `jg` faria uma 9.ª iteração, fora do contentor.
-- **Terminação garantida:** `%ecx` aumenta 1 em cada iteração e o teste está no topo do ciclo, por isso termina sempre (com `n_elementos = 0` nem entra).
-- **Classificação (padrão if-then-else da Aula 8):** `cmpl $0, %eax` → `jle senao_positivo` → ramo then (`incl conta_positivos`) → `jmp fim_if`. No ramo else, um segundo if-then-else separa zero (`jne senao_zero`) de negativo. Usam-se saltos **com sinal** (`jle`) porque os valores estão em C2; com `jbe` (sem sinal), −7 = 0xFFFFFFF9 seria contado como positivo.
-- **Acesso ao elemento:** `%edx` guarda o endereço do elemento atual e `movl (%edx), %eax` lê-o. É a forma mais simples de o endereço variar dentro do ciclo, já que o endereçamento direto (rótulo fixo) acede sempre à mesma posição.
+## Funções (Milestone 3)
+Todas têm stack frame própria: prólogo `pushl %ebp` / `movl %esp, %ebp` e epílogo `movl %ebp, %esp` / `popl %ebp` / `ret`. O parâmetro é passado **pela pilha** e lido em `8(%ebp)`.
 
-## Trace table (caso de teste)
+| Função | Parâmetro (`8(%ebp)`) | Faz | Devolve |
+|---|---|---|---|
+| `obter_elemento(indice)` | índice *i* | lê `contentor(,%ecx,4)` | `%eax` = contentor[*i*] |
+| `somar_elemento(valor)` | valor | `cltd` + `addl`/`adcl` em `soma_alta:soma_baixa` (código do M1) | — |
+| `classificar(valor)` | valor | if-then-else com `jle`/`jne` e incrementa o contador (código do M2) | — |
+
+- **Convenção (cdecl):** quem chama faz `pushl` do parâmetro, `call` e depois `addl $4, %esp` para retirar o parâmetro. O `%esp` fica igual ao que era antes da chamada.
+- **Endereçamento indexado:** `contentor(,%ecx,4)` = `contentor + i·4`. O fator de escala 4 é o tamanho de um `.long`. É o **único** sítio onde o contentor é lido: desapareceram os rótulos fixos `contentor+4`…`contentor+28` do M1 e o ponteiro `(%edx)` do M2.
+- **Registos:** as funções podem alterar `%eax`, `%ecx` e `%edx` (o `cltd` escreve em `%edx`). Por isso o `main` guarda o índice em `%ebx` e o valor em `%esi`, que as funções não alteram. Como `%ebx` e `%esi` são callee-saved, o `main` também tem prólogo/epílogo e guarda-os com `pushl`/`popl`.
+
+## Redução de duplicação
+| Antes (M2) | Agora (M3) |
+|---|---|
+| soma = 8 blocos copiados (`movl contentor+N` / `cltd` / `addl` / `adcl`) | 1 bloco em `somar_elemento`, chamado no ciclo |
+| 2 percursos do contentor (soma em linha + ciclo de classificação) | 1 só ciclo: `obter_elemento` → `somar_elemento` → `classificar` |
+| a soma só funcionava para 8 elementos | basta mudar `n_elementos` (testado com 0 e 1) |
+
+## Estado da pilha durante uma chamada
+Chamada `obter_elemento(3)` (4.ª volta do ciclo), depois do prólogo da função:
+```
+ endereços altos
+ ┌────────────────────────────┐
+ │ endereço de retorno (libc) │  ← 4(%ebp de main)
+ ├────────────────────────────┤
+ │ %ebp antigo (libc)         │  ← %ebp de main
+ ├────────────────────────────┤
+ │ %ebx antigo                │  -4(%ebp de main)   push do prólogo de main
+ ├────────────────────────────┤
+ │ %esi antigo                │  -8(%ebp de main)
+ ├────────────────────────────┤
+ │ 3  (parâmetro indice)      │  8(%ebp)   ← pushl %ebx
+ ├────────────────────────────┤
+ │ endereço de retorno (main) │  4(%ebp)   ← call obter_elemento
+ ├────────────────────────────┤
+ │ %ebp de main               │  0(%ebp)   ← pushl %ebp   ◄── %ebp = %esp
+ └────────────────────────────┘
+ endereços baixos (a pilha cresce para baixo)
+```
+No epílogo, `movl %ebp, %esp` e `popl %ebp` repõem o `%ebp` de `main`, e o `ret` tira o endereço de retorno. De volta ao `main`, `addl $4, %esp` retira o parâmetro e a pilha fica como estava antes do `pushl %ebx`.
+
+## Resultados (caso de teste)
 Contentor: `2000000000, 1500000000, -7, 0, 42, -300, 1000000000, 25`
 
-| It. | `%ecx` (i) | `%edx` | `%eax` | Saltos tomados | Ramo | pos | neg | zero |
-|---|---|---|---|---|---|---|---|---|
-| 1 | 0 | contentor+0 | 2000000000 | nenhum | positivo | 1 | 0 | 0 |
-| 2 | 1 | contentor+4 | 1500000000 | nenhum | positivo | 2 | 0 | 0 |
-| 3 | 2 | contentor+8 | −7 | `jle`, `jne` | negativo | 2 | 1 | 0 |
-| 4 | 3 | contentor+12 | 0 | `jle` | zero | 2 | 1 | 1 |
-| 5 | 4 | contentor+16 | 42 | nenhum | positivo | 3 | 1 | 1 |
-| 6 | 5 | contentor+20 | −300 | `jle`, `jne` | negativo | 3 | 2 | 1 |
-| 7 | 6 | contentor+24 | 1000000000 | nenhum | positivo | 4 | 2 | 1 |
-| 8 | 7 | contentor+28 | 25 | nenhum | positivo | 5 | 2 | 1 |
-| — | 8 | contentor+32 | — | `jge` (sai) | — | 5 | 2 | 1 |
+| Variável | Valor |
+|---|---|
+| soma (64 bits) | 4 499 999 760 (`soma_alta` = 1, `soma_baixa` = 0x0C388C10) |
+| `excede_32` | ≠ 0 (não cabe em 32 bits) |
+| positivos / negativos / zeros | 5 / 2 / 1 (total 8 = `n_elementos` ✔) |
 
-Valores confirmados no gdb (breakpoints em `ciclo`, `senao_positivo`, `senao_zero` e `fim_if`).
-
-**Resultado final:** positivos = 5, negativos = 2, zeros = 1 (total 8 = `n_elementos` ✔). A soma do Milestone 1 mantém-se: 4 499 999 760, `excede_32` = 1.
-
-**Testes de limite:** com `n_elementos = 0` o ciclo não executa (contadores a 0); com `n_elementos = 1` processa só o primeiro elemento (positivos = 1).
+São os mesmos valores do Milestone 2. Também se testou `n_elementos = 0` (tudo a 0) e `n_elementos = 1` (soma = 2 000 000 000, positivos = 1).

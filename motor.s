@@ -203,4 +203,24 @@ fim_ciclo:
         xorl   %eax, %eax           # valor de retorno de main = 0
         ret
 
+
+# =====================================================================
+#  obter_elemento(indice)
+#  Parametro: 8(%ebp) = indice do elemento (0 .. n_elementos-1)
+#  Devolve:   %eax = contentor[indice]
+#  Enderecamento indexado: contentor(,%ecx,4) -> endereco contentor + ecx*4
+#  (o fator de escala 4 e o tamanho de um .long)
+#  Quem chama garante que 0 <= indice < n_elementos.
+# =====================================================================
+obter_elemento:
+        pushl  %ebp                 # prologo: guarda o %ebp de quem chamou
+        movl   %esp, %ebp           # prologo: nova base da stack frame
+
+        movl   8(%ebp), %ecx        # ecx = indice (1.o parametro)
+        movl   contentor(,%ecx,4), %eax   # eax = M[contentor + ecx*4]
+
+        movl   %ebp, %esp           # epilogo: liberta a stack frame
+        popl   %ebp                 # epilogo: repoe o %ebp de quem chamou
+        ret                         # volta para o endereco de retorno
+
         .section .note.GNU-stack,"",@progbits   # pilha nao executavel (evita aviso do linker)
